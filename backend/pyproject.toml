@@ -1,0 +1,20 @@
+[project]
+name = "fault-watch"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "aioredis>=2.0.1",
+    "asyncpg>=0.30.0",
+    "fastapi>=0.115.12",
+    "pydantic>=2.11.5",
+    "python-dotenv>=1.1.0",
+    "sqlalchemy[asyncio]>=2.0.41",
+    "uvicorn[standard]>=0.34.3",
+]
+
+[dependency-groups]
+dev = [
+    "alembic>=1.16.1",
+]
