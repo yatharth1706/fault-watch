@@ -9,10 +9,12 @@ COPY pyproject.toml uv.lock /app/
 # 2. Install dependencies via uv
 RUN pip install uv && uv sync
 
-# 3. Copy the entire backend source (here api/) into /app/backend
-#    (If your code directory is named api/, adjust accordingly.)
-COPY . /app/backend
+# 3. Create backend directory for volume mount
+RUN mkdir -p /app/backend
 
 WORKDIR /app/backend
+
+# 4. Activate the virtual environment and expose port
+ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000

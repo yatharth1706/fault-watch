@@ -27,6 +27,8 @@ services:
       REDIS_URL: ${REDIS_URL}
     ports:
       - "8001:8000"      # ← host 8001 → container 8000
+    volumes:
+      - ./backend:/app/backend
     depends_on:
       - db
       - redis
