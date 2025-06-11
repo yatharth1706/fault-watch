@@ -3,8 +3,8 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install netcat for database connectivity checks
-RUN apt-get update && apt-get install -y netcat-traditional && rm -rf /var/lib/apt/lists/*
+# Install netcat for database connectivity checks and build dependencies for psutil
+RUN apt-get update && apt-get install -y netcat-traditional gcc python3-dev && rm -rf /var/lib/apt/lists/*
 
 # 1. Copy pyproject.toml and lockfile
 COPY pyproject.toml uv.lock /app/

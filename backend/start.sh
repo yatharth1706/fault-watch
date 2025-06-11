@@ -13,4 +13,4 @@ alembic upgrade head
 
 # Start the application
 echo "Starting FastAPI application..."
-uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload 
+PYTHONPATH=/app/backend uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload 

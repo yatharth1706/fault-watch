@@ -36,3 +36,11 @@ class Base(DeclarativeBase):
         onupdate=func.now(),
         nullable=False
     )
+
+    def model_dump(self, exclude: set = None) -> dict:
+        """Convert SQLAlchemy model to dictionary, similar to Pydantic's model_dump()"""
+        exclude = exclude or set()
+        return {
+            k: v for k, v in self.__dict__.items() 
+            if not k.startswith('_') and k not in exclude
+        }
