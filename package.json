@@ -1,0 +1,48 @@
+{
+  "name": "fault-watch",
+  "version": "1.0.0",
+  "description": "Error monitoring and tracking system",
+  "private": true,
+  "packageManager": "pnpm@8.15.0",
+  "scripts": {
+    "dev": "docker compose up --build",
+    "dev:backend": "docker compose up backend --build",
+    "dev:db": "docker compose up db redis --build",
+    "stop": "docker compose down",
+    "stop:volumes": "docker compose down -v",
+    "logs": "docker compose logs -f",
+    "logs:backend": "docker compose logs -f backend",
+    "logs:db": "docker compose logs -f db",
+    "db:migrate": "docker compose exec backend alembic upgrade head",
+    "db:migrate:down": "docker compose exec backend alembic downgrade -1",
+    "db:migrate:base": "docker compose exec backend alembic downgrade base",
+    "db:revision": "docker compose exec backend alembic revision --autogenerate -m",
+    "db:revision:manual": "docker compose exec backend alembic revision -m",
+    "db:current": "docker compose exec backend alembic current",
+    "db:history": "docker compose exec backend alembic history",
+    "db:show": "docker compose exec backend alembic show",
+    "db:stamp": "docker compose exec backend alembic stamp",
+    "health": "curl -f http://localhost:8001/health || echo 'Backend not responding'",
+    "api:docs": "open http://localhost:8001/docs",
+    "api:redoc": "open http://localhost:8001/redoc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/fault-watch.git"
+  },
+  "keywords": [
+    "error-monitoring",
+    "fastapi",
+    "postgresql",
+    "docker"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+} 
