@@ -17,7 +17,11 @@ RUN mkdir -p /app/backend
 
 WORKDIR /app/backend
 
-# 4. Activate the virtual environment and expose port
+# 4. Copy start.sh and give it execute permissions
+COPY start.sh /app/backend/start.sh
+RUN chmod +x /app/backend/start.sh
+
+# 5. Activate the virtual environment and expose port
 ENV PATH="/app/.venv/bin:$PATH"
 
 EXPOSE 8000

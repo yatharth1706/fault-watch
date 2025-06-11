@@ -2,8 +2,8 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from api.db.models.errors import RawError
-from api.db.session import get_db
+from db.models.errors import RawError
+from db.session import get_db
 from api.errors.schema import ErrorPayload
 
 router = APIRouter(prefix="/errors", tags=["errors"])
