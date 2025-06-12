@@ -7,6 +7,9 @@ from sqlalchemy.orm import Mapped, mapped_column
 class RawError(Base):
     __tablename__ = "raw_errors"
     
+    # Primary key
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    
     # Project and environment
     service: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     environment: Mapped[str] = mapped_column(String(100), nullable=False, default="production", index=True)
