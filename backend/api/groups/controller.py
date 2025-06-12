@@ -4,7 +4,6 @@ from fastapi_utils.cbv import cbv
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.session import get_db_session
-from db.repositories.groups import GroupRepository
 from api.groups.service import GroupService
 from api.groups.schema import GroupOut, GroupDetailOut
 
