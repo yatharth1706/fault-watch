@@ -33,5 +33,56 @@ services:
       - db
       - redis
 
+  celery_worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A celery_app worker --loglevel=info
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PYTHONPATH: /app/backend
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      - redis
+      - db
+      - backend
+
+  flower:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A celery_app flower --port=5555 --broker=${REDIS_URL}
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PYTHONPATH: /app/backend
+    volumes:
+      - ./backend:/app/backend
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
+      - celery_worker
+
+  beat:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    command: celery -A celery_app beat --loglevel=info
+    env_file: .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PYTHONPATH: /app/backend
+    volumes:
+      - ./backend:/app/backend
+    depends_on:
+      - redis
+      - celery_worker
+
 volumes:
   db_data:
