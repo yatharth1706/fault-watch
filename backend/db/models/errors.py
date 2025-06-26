@@ -1,7 +1,7 @@
 from datetime import datetime
-from sqlalchemy import JSON, TIMESTAMP, Boolean, Text, String, func, Index
+from sqlalchemy import JSON, TIMESTAMP, Boolean, Text, String, func, Index, ForeignKey, Integer
 from db.base import Base
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 class RawError(Base):
@@ -56,4 +56,32 @@ class RawError(Base):
     __table_args__ = (
         Index('idx_service_env_timestamp', 'service', 'environment', 'timestamp'),
         Index('idx_level_timestamp', 'level', 'timestamp'),
+    )
+
+
+class ErrorEvent(Base):
+    __tablename__ = "error_events"
+    
+    # Primary key
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    
+    # Foreign key to raw error
+    raw_error_id: Mapped[int] = mapped_column(Integer, ForeignKey('raw_errors.id'), nullable=False)
+    raw_error: Mapped[RawError] = relationship("RawError", backref="events")
+    
+    # Group fingerprint for error grouping
+    group_fingerprint: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    
+    # Event metadata
+    timestamp: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+    processed_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), nullable=False)
+    
+    # Event details
+    event_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g. "new", "reoccurrence", "resolved"
+    event_data: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    
+    # Indexes for performance
+    __table_args__ = (
+        Index('idx_group_timestamp', 'group_fingerprint', 'timestamp'),
+        Index('idx_raw_error_id', 'raw_error_id'),
     )

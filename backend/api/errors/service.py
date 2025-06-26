@@ -1,10 +1,12 @@
 from datetime import datetime
+from temporalio.client import Client
 from db.repositories.errors import ErrorRepository
 from db.repositories.groups import GroupRepository
 from .schema import ErrorPayload
 from db.models.errors import RawError
 from sqlalchemy.ext.asyncio import AsyncSession
-from tasks.error_processing import process_error, deduplicate_errors, update_group_statistics
+from temporal_config import temporal_settings
+from workflows.error_processing import ErrorProcessingWorkflow
 
 
 class ErrorService:
@@ -58,28 +60,26 @@ class ErrorService:
             error_metadata=payload.error_metadata,
         )
         
-        # Save the error first
+        # Save the error
         await self.error_repository.ingest_error(raw_error)
         
-        # Queue the error for background processing
+        # Start Temporal workflow
+        client = await Client.connect(temporal_settings.host_port)
+        
         error_data = {
             "raw_error_id": raw_error.id,
             "payload": payload.model_dump(),
         }
         
-        # Queue main processing task
-        process_task = process_error.apply_async(args=[error_data])
-        
-        # Queue follow-up tasks with countdown to ensure they run after main processing
-        deduplicate_task = deduplicate_errors.apply_async(
-            args=[None],  # group_id will be set after processing
-            countdown=300,  # 5 minutes
-            link=update_group_statistics.s()  # Chain with statistics update
+        workflow_handle = await client.start_workflow(
+            ErrorProcessingWorkflow.run,
+            error_data,
+            id=f"error-processing-{raw_error.id}",
+            task_queue=temporal_settings.task_queue,
         )
         
         return {
-            "status": "queued",
-            "error_id": raw_error.id,
-            "task_id": process_task.id,
-            "deduplication_task_id": deduplicate_task.id
+            "raw_error_id": raw_error.id,
+            "workflow_id": workflow_handle.id,
+            "workflow_run_id": workflow_handle.run_id
         }

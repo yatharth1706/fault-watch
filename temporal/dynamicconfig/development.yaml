@@ -1,0 +1,12 @@
+frontend.enableClientVersionCheck:
+  - value: true
+    constraints: {}
+system.enableActivityEagerExecution:
+  - value: false
+    constraints: {}
+history.defaultWorkflowExecutionTimeout:
+  - value: "24h"
+    constraints: {}
+limit.maxIDLength:
+  - value: 255
+    constraints: {} 
