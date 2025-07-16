@@ -37,8 +37,9 @@ class RequestContext(BaseModel):
 
 
 class ErrorPayload(BaseModel):
-    # Project/Service identification (MVP: using service as project_id)
-    service: str = Field(..., description="Service/project identifier")
+    # Project identification
+    project_id: int = Field(..., description="Project ID")
+    service: Optional[str] = Field(None, description="Service name (optional)")
     environment: str = Field(default="production", description="Environment name")
     
     # Error details
@@ -60,7 +61,7 @@ class ErrorPayload(BaseModel):
     
     # Metadata (MVP: basic metadata)
     timestamp: Optional[datetime] = Field(None, description="Error timestamp")
-    release: Optional[str] = Field(None, description="Application release version")
+    release: Optional[str] = Field(None, description="Release version")
     
     # Legacy fields for backward compatibility
     error_type: Optional[str] = Field(None, description="Error type (legacy)")

@@ -22,14 +22,19 @@ async def process_error_activity(error_data: Dict[str, Any]) -> Dict[str, Any]:
     culprit = fingerprinter.generate_culprit(payload)
     grouping_key = fingerprinter.get_grouping_key(payload)
     
-    async with async_session() as session:
+    session = async_session()
+    try:
         # Find or create error group
-        group_query = select(ErrorGroup).where(ErrorGroup.fingerprint == fingerprint)
+        group_query = select(ErrorGroup).where(
+            ErrorGroup.fingerprint == fingerprint,
+            ErrorGroup.project_id == payload.project_id
+        )
         result = await session.execute(group_query)
         group = result.scalar_one_or_none()
         
         if not group:
             group = ErrorGroup(
+                project_id=payload.project_id,  # Add project_id here
                 fingerprint=fingerprint,
                 grouping_key=grouping_key,
                 service=payload.service,
@@ -66,11 +71,14 @@ async def process_error_activity(error_data: Dict[str, Any]) -> Dict[str, Any]:
             "culprit": culprit,
             "grouping_key": grouping_key,
         }
+    finally:
+        await session.close()
 
 @activity.defn
 async def deduplicate_errors_activity(group_fingerprint: str) -> Dict[str, Any]:
     """Deduplicate errors within a group."""
-    async with async_session() as session:
+    session = async_session()
+    try:
         # Get all error events in this group from the last hour
         one_hour_ago = datetime.utcnow() - timedelta(hours=1)
         events_query = select(ErrorEvent).where(
@@ -113,11 +121,14 @@ async def deduplicate_errors_activity(group_fingerprint: str) -> Dict[str, Any]:
             "duplicates_found": duplicate_count,
             "total_errors_processed": len(raw_errors)
         }
+    finally:
+        await session.close()
 
 @activity.defn
 async def update_group_statistics_activity(group_fingerprint: str) -> Dict[str, Any]:
     """Update error group statistics."""
-    async with async_session() as session:
+    session = async_session()
+    try:
         # Get the error group
         group_query = select(ErrorGroup).where(ErrorGroup.fingerprint == group_fingerprint)
         result = await session.execute(group_query)
@@ -171,6 +182,8 @@ async def update_group_statistics_activity(group_fingerprint: str) -> Dict[str, 
             "frequency": group.frequency,
             "status": group.status
         }
+    finally:
+        await session.close()
 
 @workflow.defn
 class ErrorProcessingWorkflow:

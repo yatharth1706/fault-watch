@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import JSON, TIMESTAMP, Boolean, Text, String, func, Index, ForeignKey, Integer
 from db.base import Base
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from .projects import Project
 
 
 class RawError(Base):
@@ -9,6 +10,10 @@ class RawError(Base):
     
     # Primary key
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    
+    # Project relationship
+    project_id: Mapped[int] = mapped_column(Integer, ForeignKey('projects.id'), nullable=False)
+    project: Mapped[Project] = relationship("Project", backref="raw_errors")
     
     # Project and environment
     service: Mapped[str] = mapped_column(Text, nullable=False, index=True)
@@ -47,6 +52,9 @@ class RawError(Base):
     # Processing flags
     processed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     
+    # Data retention
+    expires_at: Mapped[datetime | None] = mapped_column(TIMESTAMP(timezone=True), nullable=True)
+    
     # Legacy fields for backward compatibility
     error_type: Mapped[str | None] = mapped_column(Text, nullable=True)
     stack_trace: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -56,6 +64,8 @@ class RawError(Base):
     __table_args__ = (
         Index('idx_service_env_timestamp', 'service', 'environment', 'timestamp'),
         Index('idx_level_timestamp', 'level', 'timestamp'),
+        Index('idx_raw_errors_project_timestamp', 'project_id', 'timestamp'),
+        Index('idx_raw_errors_expires_at', 'expires_at'),
     )
 
 

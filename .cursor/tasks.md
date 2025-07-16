@@ -64,12 +64,28 @@ Building a comprehensive error monitoring and tracking system similar to Sentry,
 
 ### 2.1 Enhanced Database Schema
 **Priority: High**
-- [ ] Create projects table for multi-tenancy
-- [ ] Enhance error groups table with:
+- [x] Create projects table for multi-tenancy
+- [x] Enhance error groups table with:
   - Status tracking (unresolved, resolved, ignored)
   - User impact metrics
   - Assignment and ownership
-- [ ] Add error events table for individual occurrences
+- [x] Add error events table for individual occurrences
+- [ ] Create organizations table with:
+  - [x] Basic org info (name, slug)
+  - [ ] Subscription status
+  - [ ] Feature flags
+  - [ ] Member management
+- [ ] Add API keys management:
+  - [x] Project-specific keys
+  - [x] Key scopes and permissions
+  - [x] Usage tracking
+  - [ ] Rate limiting support
+  - Security improvements:
+    - [ ] API key validation middleware
+    - [ ] Organization access control
+    - [ ] Project-organization validation
+    - [ ] API key scope validation
+    - [ ] Request authentication pipeline
 - [ ] Implement proper indexing for performance
 - [ ] Add data retention policies
 

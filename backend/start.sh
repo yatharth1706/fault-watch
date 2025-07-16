@@ -6,6 +6,10 @@ while ! nc -z db 5432; do
     sleep 1
 done
 
+# Run database migrations
+echo "Running database migrations..."
+alembic upgrade head
+
 # Wait for Temporal
 while ! nc -z temporal 7233; do
     echo "Waiting for Temporal to start..."

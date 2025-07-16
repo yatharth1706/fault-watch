@@ -1,8 +1,8 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_, desc
-from db.models.groups import ErrorGroup, GroupStatus
 from datetime import datetime
 from typing import Optional, List
+from sqlalchemy import select, func, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from db.models.groups import ErrorGroup, GroupStatus
 
 
 class GroupRepository:
@@ -11,6 +11,7 @@ class GroupRepository:
 
     async def list(
         self, 
+        project_id: int,
         service: Optional[str] = None, 
         environment: Optional[str] = None,
         status: Optional[GroupStatus] = None,
@@ -18,37 +19,38 @@ class GroupRepository:
         until: Optional[datetime] = None,
         limit: int = 100,
         offset: int = 0
-    ):
-        """List error groups with enhanced filtering"""
-        q = select(ErrorGroup)
+    ) -> List[ErrorGroup]:
+        """List error groups with filtering"""
+        query = select(ErrorGroup).where(ErrorGroup.project_id == project_id)
         
-        # Apply filters
-        conditions = []
         if service:
-            conditions.append(ErrorGroup.service == service)
+            query = query.where(ErrorGroup.service == service)
         if environment:
-            conditions.append(ErrorGroup.environment == environment)
+            query = query.where(ErrorGroup.environment == environment)
         if status:
-            conditions.append(ErrorGroup.status == status)
+            query = query.where(ErrorGroup.status == status)
         if since:
-            conditions.append(ErrorGroup.last_seen >= since)
+            query = query.where(ErrorGroup.last_seen >= since)
         if until:
-            conditions.append(ErrorGroup.last_seen <= until)
+            query = query.where(ErrorGroup.last_seen <= until)
         
-        if conditions:
-            q = q.where(and_(*conditions))
+        query = query.order_by(ErrorGroup.last_seen.desc())
+        query = query.limit(limit).offset(offset)
         
-        # Order by last seen descending and apply pagination
-        q = q.order_by(desc(ErrorGroup.last_seen)).offset(offset).limit(limit)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
         
-        result = await self.session.execute(q)
-        return result.scalars().all()
-
-    async def get_by_fingerprint(self, fingerprint: str):
+    async def get_by_fingerprint(self, project_id: int, fingerprint: str) -> Optional[ErrorGroup]:
         """Get error group by fingerprint"""
-        q = select(ErrorGroup).where(ErrorGroup.fingerprint == fingerprint)
-        result = await self.session.execute(q)
-        return result.scalars().first()
+        result = await self.session.execute(
+            select(ErrorGroup).where(
+                and_(
+                    ErrorGroup.project_id == project_id,
+                    ErrorGroup.fingerprint == fingerprint
+                )
+            )
+        )
+        return result.scalar_one_or_none()
     
     async def get_by_id(self, group_id: int):
         """Get error group by ID"""
@@ -56,9 +58,9 @@ class GroupRepository:
         result = await self.session.execute(q)
         return result.scalars().first()
     
-    async def update_status(self, group_id: int, status: GroupStatus):
-        """Update the status of an error group"""
-        group = await self.get_by_id(group_id)
+    async def update_status(self, group_id: int, status: GroupStatus) -> Optional[ErrorGroup]:
+        """Update error group status"""
+        group = await self.session.get(ErrorGroup, group_id)
         if group:
             group.status = status
             await self.session.commit()
@@ -66,44 +68,32 @@ class GroupRepository:
     
     async def get_stats(
         self,
+        project_id: int,
         service: Optional[str] = None,
         environment: Optional[str] = None,
         since: Optional[datetime] = None,
         until: Optional[datetime] = None
-    ):
+    ) -> dict:
         """Get error group statistics"""
-        # Base query
-        base_query = select(ErrorGroup)
-        conditions = []
+        query = select(
+            func.count().label('total_groups'),
+            func.count().filter(ErrorGroup.status == GroupStatus.UNRESOLVED).label('unresolved_groups'),
+            func.count().filter(ErrorGroup.status == GroupStatus.RESOLVED).label('resolved_groups')
+        ).where(ErrorGroup.project_id == project_id)
         
-        # Apply filters
         if service:
-            conditions.append(ErrorGroup.service == service)
+            query = query.where(ErrorGroup.service == service)
         if environment:
-            conditions.append(ErrorGroup.environment == environment)
+            query = query.where(ErrorGroup.environment == environment)
         if since:
-            conditions.append(ErrorGroup.last_seen >= since)
+            query = query.where(ErrorGroup.last_seen >= since)
         if until:
-            conditions.append(ErrorGroup.last_seen <= until)
+            query = query.where(ErrorGroup.last_seen <= until)
         
-        if conditions:
-            base_query = base_query.where(and_(*conditions))
-        
-        # Get total groups
-        total_query = select(ErrorGroup).select_from(base_query.subquery())
-        total_result = await self.session.execute(total_query)
-        total_groups = len(total_result.scalars().all())
-        
-        # Get groups by status
-        unresolved_query = select(ErrorGroup).where(
-            and_(*conditions, ErrorGroup.status == GroupStatus.UNRESOLVED)
-        ) if conditions else select(ErrorGroup).where(ErrorGroup.status == GroupStatus.UNRESOLVED)
-        
-        unresolved_result = await self.session.execute(unresolved_query)
-        unresolved_groups = len(unresolved_result.scalars().all())
-        
+        result = await self.session.execute(query)
+        row = result.one()
         return {
-            "total_groups": total_groups,
-            "unresolved_groups": unresolved_groups,
-            "resolved_groups": total_groups - unresolved_groups,
+            'total_groups': row.total_groups,
+            'unresolved_groups': row.unresolved_groups,
+            'resolved_groups': row.resolved_groups
         }
